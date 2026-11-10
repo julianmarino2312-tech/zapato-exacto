@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#eef0ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121614" media="(prefers-color-scheme: dark)">
+<meta name="description" content="Contador de cartas de baccarat: probabilidad exacta, apuesta sugerida y cuánto apostar.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Zapato">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font: 14px/1.4 system-ui, -apple-system, sans-serif; overscroll-behavior-y: none; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Zapato Exacto</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: app de celular de una columna (máx. 480px). Barra superior fija con el estado del zapato, pestañas abajo al alcance del pulgar, y la vista "Jugar" pensada para caber en una pantalla. */
+:root {
+  --bg: #eef0ec;
+  --surface: #ffffff;
+  --surface-2: #f5f6f3;
+  --line: #d6dad3;
+  --fg: #1a1f1c;
+  --muted: #5d665f;
+  --banker: #c22c2c;
+  --banker-soft: #f8e3e1;
+  --player: #1f5fbf;
+  --player-soft: #e1eaf8;
+  --tie: #1d8a4e;
+  --tie-soft: #dff1e6;
+  --edge: #0f7a43;
+  --edge-soft: #d5f0df;
+  --warn: #9a6a00;
+  --card: #fffdf8;
+  --card-ink: #1a1f1c;
+  --card-line: #c9c4b6;
+  --on-color: #ffffff;
+  --tabbar: 62px;
+  --font-display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121614; --surface: #1a1f1c; --surface-2: #202622; --line: #2f3631;
+    --fg: #e9ece8; --muted: #9aa49c;
+    --banker: #f06a62; --banker-soft: #3a1f1e; --player: #6ea0f0; --player-soft: #1c2840;
+    --tie: #4fc884; --tie-soft: #18311f; --edge: #5ad18c; --edge-soft: #173523; --warn: #e0b04a;
+    --card: #f4f1e8; --card-ink: #1a1f1c; --card-line: #c9c4b6; --on-color: #121614;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121614; --surface: #1a1f1c; --surface-2: #202622; --line: #2f3631;
+  --fg: #e9ece8; --muted: #9aa49c;
+  --banker: #f06a62; --banker-soft: #3a1f1e; --player: #6ea0f0; --player-soft: #1c2840;
+  --tie: #4fc884; --tie-soft: #18311f; --edge: #5ad18c; --edge-soft: #173523; --warn: #e0b04a;
+  --card: #f4f1e8; --card-ink: #1a1f1c; --card-line: #c9c4b6; --on-color: #121614;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  padding-block: 0 calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 20px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  -webkit-tap-highlight-color: transparent;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+.app { max-width: 480px; margin: 0 auto; }
+.num { font-variant-numeric: tabular-nums; }
+h1, h2 { font-family: var(--font-display); margin: 0; text-wrap: balance; }
+h1 { font-size: 24px; font-weight: 700; line-height: 1; letter-spacing: .01em; }
+h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--player); outline-offset: 2px; }
+.hint { font-size: 13px; color: var(--muted); margin: 0; }
+
+/* Barra superior */
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); padding-block: 12px 10px; display: grid; gap: 8px; }
+.topbar .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.mini { display: flex; gap: 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.mini span { display: grid; justify-items: end; line-height: 1.1; }
+.mini b { font-family: var(--font-display); font-size: 19px; font-weight: 600; color: var(--fg); letter-spacing: 0; }
+.pen { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.pen i { display: block; height: 100%; background: var(--fg); }
+.demo { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; background: var(--warn); color: var(--on-color); padding: 2px 7px; border-radius: 4px; }
+
+/* Vistas */
+.view { display: grid; gap: 12px; padding-top: 4px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 12px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Apuesta sugerida */
+.suggest { border-radius: 12px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); display: grid; gap: 4px; }
+.suggest.on { background: var(--edge-soft); border-color: var(--edge); }
+.suggest .slab { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.suggest .pick { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1.05; text-transform: uppercase; letter-spacing: .02em; }
+.suggest.on .pick { color: var(--edge); }
+.suggest .why { margin: 0; font-size: 14px; color: var(--muted); }
+.suggest .why strong { color: var(--fg); }
+.picks { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0; }
+.bet { display: inline-flex; align-items: baseline; gap: 8px; border-radius: 8px; padding: 6px 10px; color: var(--on-color); font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.1; text-transform: uppercase; letter-spacing: .02em; }
+.bet.B { background: var(--banker); } .bet.P { background: var(--player); } .bet.T { background: var(--tie); }
+.bet .amt { font-family: var(--font-mono); font-size: 16px; font-weight: 500; letter-spacing: 0; }
+.bet.sm { font-size: 17px; padding: 4px 8px; } .bet.sm .amt { font-size: 14px; }
+.alt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 14px; color: var(--muted); margin-top: 4px; }
+.whyd summary { cursor: pointer; color: var(--fg); font-weight: 500; min-height: 28px; display: flex; align-items: center; }
+.whyd[open] summary { margin-bottom: 4px; }
+.tiem { display: grid; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.tiem .top { display: flex; justify-content: space-between; gap: 8px; }
+.tiem .top b { color: var(--tie); font-family: var(--font-mono); font-weight: 500; }
+.tiem .trk { height: 8px; border-radius: 4px; background: var(--line); position: relative; overflow: hidden; }
+.tiem .trk i { position: absolute; inset: 0 auto 0 0; background: var(--tie); border-radius: 4px; }
+.tiem.hot .top span:first-child { color: var(--tie); font-weight: 600; }
+.stake { display: inline-block; font-family: var(--font-mono); font-weight: 500; background: var(--surface); border: 1px solid var(--edge); color: var(--edge); border-radius: 4px; padding: 0 6px; margin-left: 2px; }
+
+/* Mano */
+.hand { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.side { border-radius: 10px; padding: 8px 10px; display: grid; gap: 6px; border: 2px solid transparent; min-width: 0; }
+.side.p { background: var(--player-soft); }
+.side.b { background: var(--banker-soft); }
+.side.active.p { border-color: var(--player); }
+.side.active.b { border-color: var(--banker); }
+.side-head { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font-display); font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: .05em; }
+.side.p .side-head { color: var(--player); } .side.b .side-head { color: var(--banker); }
+.side-head .tot { font-size: 26px; line-height: 1; }
+.cards { display: flex; gap: 4px; min-height: 52px; align-items: center; }
+.c { width: 34px; height: 48px; flex: none; border-radius: 4px; background: var(--card); color: var(--card-ink); border: 1px solid var(--card-line); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 19px; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
+.c.third { transform: rotate(90deg); margin: 0 7px; }
+.c.empty { background: transparent; border: 1.5px dashed var(--line); box-shadow: none; color: var(--muted); font-size: 13px; font-weight: 500; }
+.hand-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 26px; }
+.prompt { font-size: 14px; color: var(--muted); }
+.prompt strong { color: var(--fg); }
+.result { font-family: var(--font-display); font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 4px; color: var(--on-color); white-space: nowrap; }
+.result.B { background: var(--banker); } .result.P { background: var(--player); } .result.T { background: var(--tie); }
+
+/* Teclado de cartas */
+.pad { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.pad #keys { display: contents; }
+.key { background: var(--card); color: var(--card-ink); border: 1px solid var(--card-line); border-radius: 8px; min-height: 58px; padding: 6px 0 4px; display: grid; justify-items: center; align-content: center; gap: 1px; user-select: none; -webkit-user-select: none; transition: transform .06s; }
+.key:active { transform: scale(.96); }
+.key b { font-family: var(--font-display); font-size: 25px; line-height: 1; font-weight: 700; }
+.key small { font-family: var(--font-mono); font-size: 11px; color: #6c6a62; }
+.key.zero b { color: #6c6a62; }
+.key:disabled { opacity: .35; cursor: not-allowed; }
+.burn-on .key { border-color: var(--warn); border-style: dashed; }
+.act { min-height: 58px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface-2); color: var(--fg); font-size: 13px; font-weight: 500; display: grid; place-items: center; align-content: center; gap: 2px; padding: 4px; }
+.act svg { width: 20px; height: 20px; }
+.act[aria-pressed="true"] { background: var(--warn); border-color: var(--warn); color: var(--on-color); }
+@media (prefers-reduced-motion: reduce) { .key { transition: none; } }
+
+/* Probabilidades */
+.split { display: flex; height: 12px; border-radius: 4px; overflow: hidden; }
+.split i { display: block; height: 100%; }
+.big3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.big { display: grid; gap: 2px; padding-left: 8px; border-left: 4px solid; min-width: 0; }
+.big.B { border-color: var(--banker); } .big.P { border-color: var(--player); } .big.T { border-color: var(--tie); }
+.big .lab { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.big .pct { font-family: var(--font-display); font-size: 26px; font-weight: 600; line-height: 1; }
+.big .d { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 500; padding: 0 4px 6px; border-bottom: 1px solid var(--line); }
+td { padding: 10px 4px; border-bottom: 1px solid var(--line); }
+td.r, th.r { text-align: right; font-family: var(--font-mono); font-size: 13px; }
+tr.pos td { background: var(--edge-soft); }
+.chip { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: .05em; padding: 1px 5px; border-radius: 999px; margin-left: 4px; vertical-align: 1px; }
+.chip.pos { background: var(--edge); color: var(--on-color); }
+.ev-neg { color: var(--muted); }
+.ev-pos { color: var(--edge); font-weight: 600; }
+
+/* Zapato */
+.tally { display: flex; gap: 14px; flex-wrap: wrap; font-size: 14px; }
+.tally b { font-family: var(--font-display); font-size: 20px; }
+.bead-wrap { overflow-x: auto; padding-bottom: 4px; }
+.bead { display: grid; grid-template-rows: repeat(6, 24px); grid-auto-flow: column; grid-auto-columns: 24px; gap: 3px; }
+.bead span { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 12px; color: var(--on-color); position: relative; }
+.bead .B { background: var(--banker); } .bead .P { background: var(--player); } .bead .T { background: var(--tie); }
+.bead span.x::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); border: 2px solid var(--surface); }
+.ranks { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; align-items: end; height: 100px; }
+.ranks div { display: grid; grid-template-rows: 1fr auto; height: 100%; gap: 2px; }
+.ranks .bar { align-self: end; background: var(--fg); opacity: .78; border-radius: 2px 2px 0 0; }
+.ranks .bar.hi { background: var(--edge); opacity: 1; } .ranks .bar.lo { background: var(--banker); opacity: 1; }
+.ranks .lab { font-family: var(--font-mono); font-size: 10px; text-align: center; color: var(--muted); }
+.btn-wide { width: 100%; min-height: 48px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; }
+.btn-wide.danger { color: var(--banker); border-color: var(--banker); }
+
+/* Mi mesa */
+.grp { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.grp legend { font-family: var(--font-display); font-size: 15px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; padding: 0; margin-bottom: 8px; }
+.opt { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--surface); }
+.opt:has(input:checked) { border-color: var(--edge); background: var(--edge-soft); }
+.opt:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.opt input { margin: 2px 0 0; width: 22px; height: 22px; accent-color: var(--edge); }
+.opt b { font-weight: 600; font-size: 15px; display: block; }
+.opt b em { font-style: normal; font-family: var(--font-mono); font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.opt small { display: block; font-size: 13px; color: var(--muted); line-height: 1.4; margin-top: 2px; }
+.field { display: grid; gap: 4px; font-size: 14px; font-weight: 500; }
+.field input, .field select { font: inherit; font-size: 16px; font-weight: 400; width: 100%; min-height: 44px; background: var(--surface-2); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-variant-numeric: tabular-nums; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stack { display: grid; gap: 10px; }
+.gloss summary { cursor: pointer; font-weight: 600; font-size: 15px; min-height: 28px; }
+.gloss dl { display: grid; gap: 4px; margin: 10px 0 0; font-size: 14px; }
+.gloss dt { font-weight: 600; margin-top: 8px; }
+.gloss dd { margin: 0; color: var(--muted); }
+
+/* Datos */
+.lead { margin: 0; font-size: 14px; }
+.cuts { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.cuts button { flex: none; border: 1px solid var(--line); background: var(--surface-2); border-radius: 999px; padding: 7px 12px; font-size: 13px; min-height: 36px; }
+.cuts button[aria-selected="true"] { background: var(--fg); color: var(--surface); border-color: var(--fg); }
+.srow, .bgroup { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 6px; }
+.sname { font-weight: 600; font-size: 14px; }
+.srow.pat .sname { color: var(--muted); font-weight: 500; }
+.sstats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.sstats div { display: grid; gap: 1px; min-width: 0; }
+.sstats span { font-size: 11px; color: var(--muted); line-height: 1.2; }
+.sstats b { font-family: var(--font-mono); font-size: 13px; font-weight: 500; }
+.brow { display: grid; gap: 4px; padding: 8px 10px; border-radius: 8px; background: var(--surface-2); }
+.brow.sel { background: var(--edge-soft); outline: 1px solid var(--edge); }
+.bstyle { font-size: 13px; font-weight: 600; }
+.gain-pos { color: var(--edge); }
+.gain-neg { color: var(--banker); }
+.freq { display: grid; gap: 8px; font-size: 14px; }
+.freq .row { display: grid; grid-template-columns: 62px 1fr auto; gap: 8px; align-items: center; }
+.freq .track { height: 8px; background: var(--line); border-radius: 4px; position: relative; }
+.freq .track i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+.freq .track b { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--fg); }
+.freq .v { font-family: var(--font-mono); font-size: 11px; }
+.buckets { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; height: 110px; align-items: end; }
+.buckets div { display: grid; grid-template-rows: 1fr auto; height: 100%; gap: 3px; }
+.buckets .bar { align-self: end; background: var(--edge); border-radius: 2px 2px 0 0; min-height: 1px; }
+.buckets .lab { font-family: var(--font-mono); font-size: 9px; text-align: center; color: var(--muted); }
+.foot { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+
+/* Pestañas */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; background: var(--surface); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabbar .in { max-width: 480px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); height: var(--tabbar); }
+.tab { background: none; border: 0; color: var(--muted); display: grid; justify-items: center; align-content: center; gap: 3px; font-size: 11px; font-weight: 500; position: relative; }
+.tab svg { width: 22px; height: 22px; }
+.tab[aria-current="page"] { color: var(--fg); }
+.tab[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--fg); }
+.tab .dot { position: absolute; top: 9px; right: calc(50% - 16px); width: 8px; height: 8px; border-radius: 50%; background: var(--edge); }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="row">
+      <h1>Zapato Exacto</h1>
+      <div class="mini num">
+        <span><b id="sLeft">416</b>quedan</span>
+        <span><b id="sHands">0</b>manos</span>
+        <span><b id="sPen">0%</b>jugado</span>
+      </div>
+    </div>
+    <div class="pen"><i id="penBar" style="width:0"></i></div>
+    <div class="row" id="demoRow"><span id="demoTag" class="demo" hidden>Zapato de ejemplo · toca Zapato › Nuevo zapato para empezar</span></div>
+  </header>
+
+  <!-- JUGAR -->
+  <main class="view" id="v-jugar">
+    <div class="suggest" id="suggest"><span class="slab">Apuesta sugerida para la próxima mano</span><div class="pick" id="pick">–</div><p class="why" id="why"></p><div class="tiem" id="tieMeter"></div></div>
+
+    <section class="card" id="tablePanel">
+      <div class="hand">
+        <div class="side p" id="sideP"><div class="side-head"><span>Jugador</span><span class="tot num" id="totP">–</span></div><div class="cards" id="cardsP"></div></div>
+        <div class="side b" id="sideB"><div class="side-head"><span>Banca</span><span class="tot num" id="totB">–</span></div><div class="cards" id="cardsB"></div></div>
+      </div>
+      <div class="hand-foot"><div class="prompt" id="prompt"></div><span id="lastResult"></span></div>
+      <div class="pad">
+        <div id="keys"></div>
+        <button class="act" id="undo" type="button" aria-label="Deshacer la última carta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>Deshacer</button>
+        <button class="act" id="burn" type="button" aria-pressed="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="m9 9 6 6M15 9l-6 6"/></svg>Quemar</button>
+      </div>
+      <p class="hint">Toca cada carta en el orden en que sale. La app sabe a quién va. El número pequeño es cuántas quedan.</p>
+    </section>
+  </main>
+
+  <!-- PROBABILIDADES -->
+  <main class="view" id="v-prob" hidden>
+    <section class="card">
+      <div class="card-head"><h2>Próxima mano</h2><span class="hint num" id="calcInfo"></span></div>
+      <div class="split" id="split"></div>
+      <div class="big3">
+        <div class="big B"><span class="lab">Banca</span><span class="pct num" id="pB">–</span><span class="d num" id="dB"></span></div>
+        <div class="big P"><span class="lab">Jugador</span><span class="pct num" id="pP">–</span><span class="d num" id="dP"></span></div>
+        <div class="big T"><span class="lab">Empate</span><span class="pct num" id="pT">–</span><span class="d num" id="dT"></span></div>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Todas las apuestas</h2>
+      <table>
+        <thead><tr><th>Apuesta</th><th class="r">Paga</th><th class="r">Prob.</th><th class="r">EV</th></tr></thead>
+        <tbody id="evBody"></tbody>
+      </table>
+      <p class="hint">EV = lo que ganas o pierdes en promedio por cada $100. En verde, las que hoy están a tu favor.</p>
+    </section>
+  </main>
+
+  <!-- ZAPATO -->
+  <main class="view" id="v-zapato" hidden>
+    <section class="card">
+      <div class="card-head"><h2>Manos de este zapato</h2><div class="tally num" id="tally"></div></div>
+      <div class="bead-wrap"><div class="bead" id="bead"></div></div>
+      <p class="hint">Punto naranja: mano con par. Las manos pasadas no cambian la próxima; solo importan las cartas que quedan.</p>
+    </section>
+    <section class="card">
+      <h2>Cartas que quedan</h2>
+      <div class="ranks" id="ranks"></div>
+      <p class="hint">Verde: sobran de ese rango. Rojo: faltan.</p>
+    </section>
+    <button class="btn-wide danger" id="newShoe" type="button">Nuevo zapato</button>
+  </main>
+
+  <!-- MI MESA -->
+  <main class="view" id="v-mesa" hidden>
+    <p class="hint">Marca solo lo que tiene la mesa donde juegas. La app ignora lo demás.</p>
+    <section class="card" id="mesaPanel">
+      <fieldset class="grp">
+        <legend>Tipo de mesa</legend>
+        <label class="opt" for="cfgCommStd"><input type="radio" name="cfgComm" id="cfgCommStd" value="0">
+          <span><b>Normal (con comisión)</b><small>Si ganas apostando a Banca, el casino se queda el 5 % de tu premio.</small></span></label>
+        <label class="opt" for="cfgCommEZ"><input type="radio" name="cfgComm" id="cfgCommEZ" value="1">
+          <span><b>EZ Baccarat (sin comisión)</b><small>Banca paga completo, pero si gana con un 7 de tres cartas no ganas ni pierdes. Suelen tener Dragon 7 y Panda 8.</small></span></label>
+        <div class="two">
+          <label class="field" for="cfgDecks">Mazos <select id="cfgDecks"><option>1</option><option>2</option><option>4</option><option>6</option><option selected>8</option></select></label>
+          <label class="field" for="cfgTie">Empate paga <select id="cfgTie"><option value="8" selected>8 a 1</option><option value="9">9 a 1</option></select></label>
+        </div>
+      </fieldset>
+    </section>
+    <section class="card">
+      <fieldset class="grp">
+        <legend>Apuestas extra de tu mesa</legend>
+        <p class="hint">Banca y Jugador siempre están.</p>
+        <label class="opt" for="betTie"><input type="checkbox" id="betTie"><span><b>Empate <em>8 a 1</em></b><small>Ganas si Jugador y Banca terminan con el mismo total.</small></span></label>
+        <label class="opt" for="betPP"><input type="checkbox" id="betPP"><span><b>Par Jugador <em>11 a 1</em></b><small>Ganas si las dos primeras cartas del Jugador son iguales (dos 7, dos K…).</small></span></label>
+        <label class="opt" for="betBP"><input type="checkbox" id="betBP"><span><b>Par Banca <em>11 a 1</em></b><small>Lo mismo, con las dos primeras cartas de la Banca.</small></span></label>
+        <label class="opt" for="betD7" id="optD7"><input type="checkbox" id="betD7"><span><b>Dragon 7 <em>40 a 1</em></b><small>Solo mesas EZ. Ganas si la Banca gana con un 7 hecho con tres cartas.</small></span></label>
+        <label class="opt" for="betP8" id="optP8"><input type="checkbox" id="betP8"><span><b>Panda 8 <em>25 a 1</em></b><small>Solo mesas EZ. Ganas si el Jugador gana con un 8 hecho con tres cartas.</small></span></label>
+      </fieldset>
+    </section>
+    <section class="card">
+      <fieldset class="grp">
+        <legend>Cuánto apostar</legend>
+        <label class="opt" for="cfgKellyOn"><input type="checkbox" id="cfgKellyOn"><span><b>Decirme cuánto apostar</b><small>Método Kelly: apuesta más cuando la ventaja es grande y menos cuando es pequeña, según el dinero que tienes. Así una mala racha no te deja sin nada.</small></span></label>
+        <div id="kellyFields" class="stack">
+          <div class="two">
+            <label class="field" for="cfgBank">Tu dinero ($) <input id="cfgBank" type="number" min="0" step="100" inputmode="decimal"></label>
+            <label class="field" for="cfgMin">Mínima mesa ($) <input id="cfgMin" type="number" min="1" step="1" inputmode="decimal"></label>
+          </div>
+          <label class="field" for="cfgKelly">Estilo <select id="cfgKelly"><option value="0.25" selected>Prudente (recomendado)</option><option value="0.5">Medio</option><option value="1">Agresivo</option></select></label>
+          <p class="hint" id="kellyHint"></p>
+        </div>
+      </fieldset>
+    </section>
+    <section class="card">
+      <details class="gloss">
+        <summary>¿Qué significan los términos?</summary>
+        <dl>
+          <dt>EV (valor esperado)</dt><dd>Lo que ganas o pierdes en promedio por cada $100 apostados. EV −1 % = pierdes $1 de cada $100. EV +5 % = ganas $5.</dd>
+          <dt>Ventaja / EV+</dt><dd>Una apuesta con EV positivo. Pasa solo cuando las cartas que quedan la favorecen. Es la única vez que la app sugiere apostar.</dd>
+          <dt>Zapato</dt><dd>La caja con todas las cartas de la mesa, normalmente 8 mazos (416 cartas).</dd>
+          <dt>Corte</dt><dd>La tarjeta que marca dónde el casino deja de repartir y baraja. Cuanto más cerca del final, más oportunidades.</dd>
+          <dt>Quemar cartas</dt><dd>Cartas que el crupier descarta sin jugar, normalmente al empezar el zapato. Igual hay que marcarlas.</dd>
+          <dt>Bankroll</dt><dd>El dinero que separas solo para jugar.</dd>
+          <dt>Kelly</dt><dd>Fórmula de 1956 para decidir qué parte de tu dinero apostar cuando tienes ventaja. "Prudente" apuesta la cuarta parte de lo que dice la fórmula.</dd>
+        </dl>
+      </details>
+    </section>
+  </main>
+
+  <!-- DATOS -->
+  <main class="view" id="v-datos" hidden>
+    <section class="card" id="simPanel">
+      <div class="card-head"><h2>Respaldo estadístico</h2></div>
+      <p class="hint num" id="simInfo"></p>
+      <p class="lead" id="simLead"></p>
+      <div class="cuts" role="tablist" aria-label="Cartas que quedan cuando se cambia el zapato" id="cutTabs"></div>
+      <div id="simBody"></div>
+    </section>
+    <section class="card">
+      <h2>Frecuencia real vs. teoría</h2>
+      <div id="simFreq" class="freq"></div>
+    </section>
+    <section class="card">
+      <h2>Manos con ventaja según cartas restantes</h2>
+      <div class="buckets" id="simBuckets"></div>
+      <p class="hint" id="bucketNote"></p>
+    </section>
+    <section class="card" id="bankPanel">
+      <h2>Bankroll simulado</h2>
+      <p class="hint num" id="bankInfo"></p>
+      <p class="lead" id="bankLead"></p>
+      <div class="cuts" role="tablist" aria-label="Cartas que quedan cuando se cambia el zapato" id="bankTabs"></div>
+      <div id="bankBody"></div>
+      <p class="hint" id="bankNote"></p>
+    </section>
+    <p class="foot">Las probabilidades son exactas: se recorren todas las combinaciones posibles de la próxima mano con las reglas de tercera carta de Punto Banco. En muchas jurisdicciones está prohibido usar dispositivos de conteo en la mesa de un casino.</p>
+  </main>
+</div>
+
+<nav class="tabbar" aria-label="Secciones">
+  <div class="in">
+    <button class="tab" type="button" data-v="jugar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="11" height="15" rx="2"/><path d="M17 4.5 20 6a2 2 0 0 1 1 2.5l-3.5 10"/></svg>Jugar<span class="dot" id="edgeDot" hidden></span></button>
+    <button class="tab" type="button" data-v="zapato"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="6" cy="18" r="2"/></svg>Zapato</button>
+    <button class="tab" type="button" data-v="prob"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Probab.</button>
+    <button class="tab" type="button" data-v="mesa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Mi mesa</button>
+    <button class="tab" type="button" data-v="datos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></svg>Datos</button>
+  </div>
+</nav>
+
+<script>
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+const KEYMAP = { a:0, '1':0, '2':1, '3':2, '4':3, '5':4, '6':5, '7':6, '8':7, '9':8, '0':9, t:9, j:10, q:11, k:12 };
+const rankValue = r => (r >= 9 ? 0 : r + 1);
+
+function bankerDraws(b, p3) {
+  if (p3 === null) return b <= 5;
+  if (b <= 2) return true;
+  if (b === 3) return p3 !== 8;
+  if (b === 4) return p3 >= 2 && p3 <= 7;
+  if (b === 5) return p3 >= 4 && p3 <= 7;
+  if (b === 6) return p3 === 6 || p3 === 7;
+  return false;
+}
+function settle(o, P, B, w, p3card, b3card) {
+  if (P > B) { o.player += w; if (P === 8 && p3card) o.panda8 += w; }
+  else if (B > P) { o.banker += w; if (B === 7 && b3card) o.dragon7 += w; }
+  else o.tie += w;
+}
+function computeProbs(rankCounts) {
+  const c = new Array(10).fill(0); let N = 0;
+  for (let r = 0; r < 13; r++) { c[rankValue(r)] += rankCounts[r]; N += rankCounts[r]; }
+  if (N < 6) return null;
+  const out = { banker: 0, player: 0, tie: 0, dragon7: 0, panda8: 0, N };
+  for (let p1 = 0; p1 < 10; p1++) { if (!c[p1]) continue; const w1 = c[p1] / N; c[p1]--;
+    for (let b1 = 0; b1 < 10; b1++) { if (!c[b1]) continue; const w2 = w1 * c[b1] / (N - 1); c[b1]--;
+      for (let p2 = 0; p2 < 10; p2++) { if (!c[p2]) continue; const w3 = w2 * c[p2] / (N - 2); c[p2]--;
+        for (let b2 = 0; b2 < 10; b2++) { if (!c[b2]) continue; const w4 = w3 * c[b2] / (N - 3); c[b2]--;
+          const P = (p1 + p2) % 10, B = (b1 + b2) % 10;
+          if (P >= 8 || B >= 8) settle(out, P, B, w4, false, false);
+          else if (P <= 5) {
+            for (let p3 = 0; p3 < 10; p3++) { if (!c[p3]) continue; const w5 = w4 * c[p3] / (N - 4); c[p3]--;
+              const P3 = (P + p3) % 10;
+              if (bankerDraws(B, p3)) { for (let b3 = 0; b3 < 10; b3++) { if (!c[b3]) continue; settle(out, P3, (B + b3) % 10, w5 * c[b3] / (N - 5), true, true); } }
+              else settle(out, P3, B, w5, true, false);
+              c[p3]++; }
+          } else if (bankerDraws(B, null)) {
+            for (let b3 = 0; b3 < 10; b3++) { if (!c[b3]) continue; settle(out, P, (B + b3) % 10, w4 * c[b3] / (N - 4), false, true); }
+          } else settle(out, P, B, w4, false, false);
+          c[b2]++; }
+        c[p2]++; }
+      c[b1]++; }
+    c[p1]++; }
+  let pair = 0; for (let r = 0; r < 13; r++) pair += rankCounts[r] * (rankCounts[r] - 1);
+  out.pair = pair / (N * (N - 1));
+  return out;
+}
+function computeEV(pr, cfg) {
+  return {
+    banker: cfg.noComm ? (pr.banker - pr.dragon7) - pr.player : 0.95 * pr.banker - pr.player,
+    player: pr.player - pr.banker,
+    tie: cfg.tiePay * pr.tie - (1 - pr.tie),
+    pair: 11 * pr.pair - (1 - pr.pair),
+    dragon7: 40 * pr.dragon7 - (1 - pr.dragon7),
+    panda8: 25 * pr.panda8 - (1 - pr.panda8),
+  };
+}
+function nextSlot(pc, bc) {
+  const n = pc.length + bc.length;
+  if (n < 4) return ['P','B','P','B'][n];
+  const P = (pc[0] + pc[1]) % 10, B = (bc[0] + bc[1]) % 10;
+  if (P >= 8 || B >= 8) return null;
+  if (P <= 5 && pc.length === 2) return 'P';
+  if (bc.length === 2 && bankerDraws(B, pc.length === 3 ? pc[2] : null)) return 'B';
+  return null;
+}
+const total = h => h.reduce((a, r) => a + rankValue(r), 0) % 10;
+
+/* ---------- Estado: un registro de eventos que se reproduce ---------- */
+const STORE = 'zapato-exacto-v1';
+const DEFAULT_BETS = { tie: true, pp: true, bp: true, d7: true, p8: true };
+const BET_IDS = [['betTie', 'tie'], ['betPP', 'pp'], ['betBP', 'bp'], ['betD7', 'd7'], ['betP8', 'p8']];
+let state = { decks: 8, tiePay: 8, noComm: false, events: [], demo: false, bank: 5000, minBet: 5, kfrac: 0.25, kellyOn: true, bets: Object.assign({}, DEFAULT_BETS) };
+let burnMode = false;
+
+function derive() {
+  const counts = new Array(13).fill(4 * state.decks);
+  const hands = []; let pc = [], bc = [], burned = 0, last = null;
+  for (const ev of state.events) {
+    counts[ev.r]--;
+    if (ev.burn) { burned++; continue; }
+    const slot = nextSlot(pc.map(rankValue), bc.map(rankValue));
+    (slot === 'P' ? pc : bc).push(ev.r);
+    if (nextSlot(pc.map(rankValue), bc.map(rankValue)) === null) {
+      const P = total(pc), B = total(bc);
+      last = { pc, bc, P, B, res: P > B ? 'P' : B > P ? 'B' : 'T',
+        pair: pc[0] === pc[1] || bc[0] === bc[1] };
+      hands.push(last); pc = []; bc = [];
+    }
+  }
+  return { counts, hands, pc, bc, burned, last, inHand: pc.length + bc.length > 0 };
+}
+
+function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+function load() {
+  try { const s = JSON.parse(localStorage.getItem(STORE)); if (s && Array.isArray(s.events)) { state = Object.assign(state, s); return true; } } catch (e) {}
+  return false;
+}
+function demoShoe() {
+  // Zapato de ejemplo: baraja 8 mazos y reparte ~38 manos.
+  const deck = []; for (let r = 0; r < 13; r++) for (let i = 0; i < 32; i++) deck.push(r);
+  let seed = 20261109; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  state = { decks: 8, tiePay: 8, noComm: true, events: [], demo: true, bank: 5000, minBet: 5, kfrac: 0.25, kellyOn: true, bets: Object.assign({}, DEFAULT_BETS) };
+  let i = 0; const burnN = rankValue(deck[0]) || 10;
+  for (let k = 0; k <= burnN; k++) state.events.push({ r: deck[i++], burn: true });
+  for (let h = 0; h < 38; h++) {
+    let pc = [], bc = [];
+    while (true) { const s = nextSlot(pc.map(rankValue), bc.map(rankValue)); if (!s) break;
+      const r = deck[i++]; state.events.push({ r }); (s === 'P' ? pc : bc).push(r); }
+  }
+}
+
+/* ---------- Render ---------- */
+const $ = id => document.getElementById(id);
+const pct = x => (x * 100).toFixed(2) + '%';
+const sgn = x => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixed(2) + '%';
+let baseCache = {};
+function baseProbs() {
+  const k = state.decks;
+  if (!baseCache[k]) baseCache[k] = computeProbs(new Array(13).fill(4 * k));
+  return baseCache[k];
+}
+
+function renderCards(el, ranks, side, next) {
+  el.innerHTML = '';
+  ranks.forEach((r, i) => { const d = document.createElement('div'); d.className = 'c' + (i === 2 ? ' third' : ''); d.textContent = RANKS[r]; el.appendChild(d); });
+  if (next === side) { const d = document.createElement('div'); d.className = 'c empty'; d.textContent = '?'; el.appendChild(d); }
+}
+
+function render() {
+  const d = derive();
+  const full = 52 * state.decks, left = d.counts.reduce((a, b) => a + b, 0);
+  $('sLeft').textContent = left; $('sHands').textContent = d.hands.length;
+  const pen = 1 - left / full; $('sPen').textContent = Math.round(pen * 100) + '%'; $('penBar').style.width = (pen * 100) + '%';
+  $('demoTag').hidden = !state.demo;
+  $('cfgDecks').value = String(state.decks); $('cfgTie').value = String(state.tiePay);
+  $('cfgCommStd').checked = !state.noComm; $('cfgCommEZ').checked = state.noComm;
+  for (const [id, k] of BET_IDS) $(id).checked = !!state.bets[k];
+  $('betD7').disabled = $('betP8').disabled = !state.noComm;
+  document.querySelector('label[for="betTie"] em').textContent = state.tiePay + ' a 1';
+  $('cfgKellyOn').checked = state.kellyOn; $('kellyFields').hidden = !state.kellyOn;
+  if (document.activeElement !== $('cfgBank')) $('cfgBank').value = String(state.bank);
+  if (document.activeElement !== $('cfgMin')) $('cfgMin').value = String(state.minBet);
+  $('cfgKelly').value = String(state.kfrac);
+  $('kellyHint').textContent = { 0.25: 'Prudente: crece más lento; en la simulación las caídas típicas fueron de un 30 %.', 0.5: 'Medio: crece más rápido; caídas típicas de un 50 %.', 1: 'Agresivo: el máximo crecimiento, pero caídas típicas de un 75 %. Solo si aceptas ver tu dinero bajar mucho.' }[state.kfrac];
+
+  // Mano: si no hay mano en curso, muestra la última terminada
+  const show = d.inHand || !d.last ? { pc: d.pc, bc: d.bc } : d.last;
+  const next = burnMode ? null : nextSlot(d.pc.map(rankValue), d.bc.map(rankValue));
+  renderCards($('cardsP'), show.pc, 'P', d.inHand || !d.last ? next : null);
+  renderCards($('cardsB'), show.bc, 'B', d.inHand || !d.last ? next : null);
+  $('totP').textContent = show.pc.length ? total(show.pc) : '–';
+  $('totB').textContent = show.bc.length ? total(show.bc) : '–';
+  $('sideP').classList.toggle('active', next === 'P'); $('sideB').classList.toggle('active', next === 'B');
+  const names = { P: 'Jugador', B: 'Banca' };
+  if (burnMode) $('prompt').innerHTML = '<strong>Modo quemar:</strong> las cartas que marques salen del zapato sin formar mano. ' + d.burned + ' quemadas.';
+  else {
+    const nP = d.pc.length, nB = d.bc.length, who = next, ord = (who === 'P' ? nP : nB) + 1;
+    $('prompt').innerHTML = (!d.inHand && d.last ? 'Mano terminada. ' : '') + 'Siguiente carta: <strong>' + names[who] + ' · ' + ord + 'ª</strong>' + (ord === 3 ? ' (tercera carta por regla)' : '');
+  }
+  const lr = $('lastResult');
+  if (!d.inHand && d.last) { const t = { B: 'Gana Banca', P: 'Gana Jugador', T: 'Empate' }[d.last.res]; lr.innerHTML = '<span class="result ' + d.last.res + '">' + t + ' ' + d.last.P + '–' + d.last.B + '</span>'; }
+  else lr.innerHTML = '';
+
+  // Teclado
+  const keys = $('keys'); keys.innerHTML = '';
+  keys.parentElement.classList.toggle('burn-on', burnMode);
+  RANKS.forEach((name, r) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'key' + (rankValue(r) === 0 ? ' zero' : '');
+    b.disabled = d.counts[r] <= 0; b.setAttribute('aria-label', 'Carta ' + name + ', quedan ' + d.counts[r]);
+    b.innerHTML = '<b>' + name + '</b><small class="num">' + d.counts[r] + '</small>';
+    b.addEventListener('click', () => addCard(r)); keys.appendChild(b);
+  });
+  $('burn').setAttribute('aria-pressed', String(burnMode));
+
+  // Probabilidades: cuentan las cartas ya vistas en la mano en curso, la próxima mano empieza después
+  const t0 = performance.now();
+  const pr = computeProbs(d.counts), base = baseProbs();
+  const ms = performance.now() - t0;
+  if (!pr) { $('calcInfo').textContent = 'Quedan muy pocas cartas'; return; }
+  $('calcInfo').textContent = 'exacto · ' + left + ' cartas · ' + ms.toFixed(0) + ' ms';
+  $('split').innerHTML = '<i style="width:' + pr.banker * 100 + '%;background:var(--banker)"></i><i style="width:' + pr.tie * 100 + '%;background:var(--tie)"></i><i style="width:' + pr.player * 100 + '%;background:var(--player)"></i>';
+  const delta = (a, b) => { const x = (a - b) * 100; return (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2) + ' pts vs. base'; };
+  $('pB').textContent = pct(pr.banker); $('dB').textContent = delta(pr.banker, base.banker);
+  $('pP').textContent = pct(pr.player); $('dP').textContent = delta(pr.player, base.player);
+  $('pT').textContent = pct(pr.tie); $('dT').textContent = delta(pr.tie, base.tie);
+
+  const ev = computeEV(pr, state);
+  // [nombre, pago, prob, base, EV, {p gana, q pierde, b pago}] — Dragon 7 y Panda 8 solo existen en mesas EZ
+  const rows = [
+    ['Banca', state.noComm ? '1 a 1*' : '0,95 a 1', pr.banker, base.banker, ev.banker,
+      state.noComm ? { p: pr.banker - pr.dragon7, q: pr.player, b: 1 } : { p: pr.banker, q: pr.player, b: 0.95 }],
+    ['Jugador', '1 a 1', pr.player, base.player, ev.player, { p: pr.player, q: pr.banker, b: 1 }],
+    ['Empate', state.tiePay + ' a 1', pr.tie, base.tie, ev.tie, { p: pr.tie, q: 1 - pr.tie, b: state.tiePay }],
+    ['Par Jugador', '11 a 1', pr.pair, base.pair, ev.pair, { p: pr.pair, q: 1 - pr.pair, b: 11 }],
+    ['Par Banca', '11 a 1', pr.pair, base.pair, ev.pair, { p: pr.pair, q: 1 - pr.pair, b: 11 }],
+  ];
+  if (state.noComm) rows.push(
+    ['Dragon 7', '40 a 1', pr.dragon7, base.dragon7, ev.dragon7, { p: pr.dragon7, q: 1 - pr.dragon7, b: 40 }],
+    ['Panda 8', '25 a 1', pr.panda8, base.panda8, ev.panda8, { p: pr.panda8, q: 1 - pr.panda8, b: 25 }]);
+  // Solo las apuestas que el usuario marcó en "Mi mesa"
+  const BET_KEY = { 'Empate': 'tie', 'Par Jugador': 'pp', 'Par Banca': 'bp', 'Dragon 7': 'd7', 'Panda 8': 'p8' };
+  for (let i = rows.length - 1; i >= 0; i--) { const k = BET_KEY[rows[i][0]]; if (k && !state.bets[k]) rows.splice(i, 1); }
+  $('evBody').innerHTML = rows.map(([n, pay, p, b, e]) =>
+    '<tr class="' + (e > 0 ? 'pos' : '') + '"><td>' + n + (e > 0 ? '<span class="chip pos">EV+</span>' : '') + '</td><td class="r">' + pay + '</td><td class="r">' + pct(p) + '</td><td class="r ' + (e > 0 ? 'ev-pos' : 'ev-neg') + '">' + sgn(e) + '</td></tr>').join('');
+  // Apuesta sugerida: solo las apuestas con EV positivo; si no hay ninguna, no apostar.
+  const best = rows.filter(r => r[4] > 0).sort((a, b) => b[4] - a[4]);
+  const sg = $('suggest');
+  $('edgeDot').hidden = !best.length;
+  const SIDE = { 'Banca': 'B', 'Jugador': 'P', 'Empate': 'T', 'Par Jugador': 'P', 'Par Banca': 'B', 'Dragon 7': 'B', 'Panda 8': 'P' };
+  const money = x => '$' + Math.round(x).toLocaleString('es');
+  // Kelly con empates posibles: f = (p·b − q) / (b·(p+q)); fracción elegida, redondeado a la mínima de la mesa
+  const stakeOf = s => { const f = (s.p * s.b - s.q) / (s.b * (s.p + s.q)); return Math.max(0, Math.round(f * state.kfrac * state.bank / state.minBet) * state.minBet); };
+  const chip = (name, amt, small) => '<span class="bet ' + SIDE[name] + (small ? ' sm' : '') + '">' + name + (amt ? '<span class="amt">' + amt + '</span>' : '') + '</span>';
+  if (best.length) {
+    sg.className = 'suggest on';
+    $('pick').innerHTML = '<div class="picks">' + best.map(r => {
+      let amt = '';
+      if (state.kellyOn) { const st = stakeOf(r[5]); amt = st >= state.minBet ? money(st) : money(state.minBet); }
+      return chip(r[0], amt);
+    }).join('') + '</div>';
+    $('why').innerHTML = '<details class="whyd"><summary>Ver por qué</summary>' + best.map(r => {
+      const low = state.kellyOn && stakeOf(r[5]) < state.minBet;
+      return '<strong>' + r[0] + '</strong>: gana el ' + pct(r[2]) + ' de las veces, paga ' + r[1] + ', EV ' + sgn(r[4]) + (low ? ' · Kelly da menos que la mínima: apuesta solo la mínima' : '');
+    }).join('<br>') + '<br>Ventaja matemática: se gana a largo plazo, no en cada mano.' +
+      (state.kellyOn ? ' Montos con estilo ' + ({ 1: 'agresivo', 0.5: 'medio', 0.25: 'prudente' })[state.kfrac] + ' sobre ' + money(state.bank) + '.' : ' Activa "Decirme cuánto apostar" en Mi mesa para ver montos.') + '</details>';
+  } else {
+    // Sin ventaja: no apostar. Si juega igual, la menos mala entre Banca y Jugador, con la mínima.
+    const main = rows.filter(r => r[0] === 'Banca' || r[0] === 'Jugador').sort((a, b) => b[4] - a[4])[0];
+    sg.className = 'suggest';
+    $('pick').innerHTML = 'No apostar';
+    $('why').innerHTML = 'Con estas cartas ninguna apuesta tiene ventaja.' +
+      '<div class="alt">Si vas a jugar igual: ' + chip(main[0], money(state.minBet), true) + '<span>la mínima · EV ' + sgn(main[4]) + '</span></div>' +
+      (state.noComm && main[0] === 'Banca' ? '<span class="hint">Banca sin comisión empata si gana con 7 de tres cartas.</span>' : '');
+  }
+  // Medidor de empate: conviene apostar al empate solo cuando su probabilidad pasa el punto de equilibrio 1/(pago+1)
+  const tm = $('tieMeter');
+  if (state.bets.tie) {
+    const need = 1 / (state.tiePay + 1), hot = pr.tie >= need;
+    tm.hidden = false; tm.className = 'tiem' + (hot ? ' hot' : '');
+    tm.innerHTML = '<div class="top"><span>' + (hot ? 'Empate: ahora conviene' : 'Probabilidad de empate') + '</span><b class="num">' + pct(pr.tie) + '</b></div>' +
+      '<div class="trk"><i style="width:' + Math.min(100, pr.tie / need * 100) + '%"></i></div>' +
+      '<span>Conviene apostar al empate desde ' + pct(need) + ' (paga ' + state.tiePay + ' a 1). Normal: ' + pct(base.tie) + '.</span>';
+  } else tm.hidden = true;
+
+  // Registro
+  const tally = { B: 0, P: 0, T: 0 }; d.hands.forEach(h => tally[h.res]++);
+  $('tally').innerHTML = '<span style="color:var(--banker)">Banca <b>' + tally.B + '</b></span><span style="color:var(--player)">Jugador <b>' + tally.P + '</b></span><span style="color:var(--tie)">Empate <b>' + tally.T + '</b></span>';
+  $('bead').innerHTML = d.hands.map(h => '<span class="' + h.res + (h.pair ? ' x' : '') + '" title="Jugador ' + h.P + ' · Banca ' + h.B + '">' + ({ B: 'B', P: 'J', T: 'E' })[h.res] + '</span>').join('') || '<span style="color:var(--muted);width:auto;font-family:var(--font-body);font-weight:400">Sin manos todavía</span>';
+
+  // Composición
+  const exp = left / 13, max = Math.max(...d.counts, 1);
+  $('ranks').innerHTML = d.counts.map((n, r) => {
+    const dev = n - exp, cls = dev > exp * 0.12 ? 'hi' : dev < -exp * 0.12 ? 'lo' : '';
+    return '<div title="' + RANKS[r] + ': quedan ' + n + '"><span class="bar ' + cls + '" style="height:' + (n / max * 100) + '%"></span><span class="lab">' + RANKS[r] + '</span></div>';
+  }).join('');
+}
+
+function addCard(r) {
+  const d = derive(); if (d.counts[r] <= 0) return;
+  state.events.push(burnMode ? { r, burn: true } : { r }); save(); render();
+}
+function undo() { state.events.pop(); save(); render(); }
+
+let armed = false;
+$('newShoe').addEventListener('click', () => {
+  if (!armed && state.events.length && !state.demo) {
+    armed = true; $('newShoe').textContent = 'Confirmar: borrar zapato';
+    setTimeout(() => { armed = false; $('newShoe').textContent = 'Nuevo zapato'; }, 4000); return;
+  }
+  armed = false; $('newShoe').textContent = 'Nuevo zapato';
+  state = Object.assign({}, state, { events: [], demo: false });
+  burnMode = false; save(); render();
+});
+$('undo').addEventListener('click', undo);
+$('burn').addEventListener('click', () => { burnMode = !burnMode; render(); });
+$('cfgDecks').addEventListener('change', e => {
+  state.decks = +e.target.value; state.events = []; state.demo = false; save(); render();
+});
+$('cfgTie').addEventListener('change', e => { state.tiePay = +e.target.value; save(); render(); });
+['cfgCommStd', 'cfgCommEZ'].forEach(id => $(id).addEventListener('change', e => { state.noComm = e.target.value === '1'; save(); render(); }));
+for (const [id, k] of BET_IDS) $(id).addEventListener('change', e => { state.bets[k] = e.target.checked; save(); render(); });
+$('cfgKellyOn').addEventListener('change', e => { state.kellyOn = e.target.checked; save(); render(); });
+$('cfgBank').addEventListener('input', e => { const v = +e.target.value; if (v >= 0) { state.bank = v; save(); render(); renderBank(); } });
+$('cfgMin').addEventListener('input', e => { const v = +e.target.value; if (v >= 1) { state.minBet = v; save(); render(); renderBank(); } });
+$('cfgKelly').addEventListener('change', e => { state.kfrac = +e.target.value; save(); render(); renderBank(); });
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+  const k = e.key.toLowerCase();
+  if (k === 'backspace') { e.preventDefault(); undo(); }
+  else if (k === 'x') { burnMode = !burnMode; render(); }
+  else if (k in KEYMAP) addCard(KEYMAP[k]);
+});
+
+/* ---------- Respaldo estadístico (resultados del simulador, generados offline) ---------- */
+const SIM = /*SIM_DATA*/{"decks":8,"generated":"2026-11-10T04:19:01.184Z","results":[{"cut":14,"hands":2500000,"shoes":31146,"handsPerShoe":80.267,"freq":{"B":0.45886,"P":0.44581,"T":0.095324},"tables":{"std":{"label":"Mesa estándar","edgeHandsPct":0.024779,"betsPerShoe":4.0605,"totalBets":126470,"totalProfit":12815,"profitPerShoe":{"mean":0.41146,"ci95":0.074015},"roiPerBet":0.10133},"ez":{"label":"Mesa EZ (sin comisión)","edgeHandsPct":0.15632,"betsPerShoe":18.173,"totalBets":566010,"totalProfit":46031,"profitPerShoe":{"mean":1.4779,"ci95":0.2631},"roiPerBet":0.081325}},"patterns":{"seguirRacha":{"n":2465500,"winRate":0.45279,"roi":{"mean":-0.010772,"ci95":0.0011722}},"contraRacha":{"n":2465500,"winRate":0.45191,"roi":{"mean":-0.012171,"ci95":0.0011727}},"siempreBanca":{"n":2500000,"winRate":0.45886,"roi":{"mean":-0.0098904,"ci95":0.0011495}}},"buckets":[{"cardsLeftFrom":0,"cardsLeftTo":51,"hands":233350,"std":0.21207,"ez":0.59846},{"cardsLeftFrom":52,"cardsLeftTo":103,"hands":327780,"std":0.036589,"ez":0.34974},{"cardsLeftFrom":104,"cardsLeftTo":155,"hands":327850,"std":0.0014305,"ez":0.20939},{"cardsLeftFrom":156,"cardsLeftTo":207,"hands":327920,"std":0,"ez":0.12231},{"cardsLeftFrom":208,"cardsLeftTo":259,"hands":327770,"std":0,"ez":0.060676},{"cardsLeftFrom":260,"cardsLeftTo":311,"hands":327730,"std":0,"ez":0.021325},{"cardsLeftFrom":312,"cardsLeftTo":363,"hands":328110,"std":0,"ez":0.0026759},{"cardsLeftFrom":364,"cardsLeftTo":415,"hands":299490,"std":0,"ez":0.000020034}]},{"cut":52,"hands":2500000,"shoes":34452,"handsPerShoe":72.565,"freq":{"B":0.45901,"P":0.44598,"T":0.095011},"tables":{"std":{"label":"Mesa estándar","edgeHandsPct":0.0054052,"betsPerShoe":0.78785,"totalBets":27143,"totalProfit":1233.3,"profitPerShoe":{"mean":0.035798,"ci95":0.031259},"roiPerBet":0.045437},"ez":{"label":"Mesa EZ (sin comisión)","edgeHandsPct":0.11108,"betsPerShoe":9.8339,"totalBets":338800,"totalProfit":15182,"profitPerShoe":{"mean":0.44067,"ci95":0.19759},"roiPerBet":0.044811}},"patterns":{"seguirRacha":{"n":2462000,"winRate":0.45197,"roi":{"mean":-0.012666,"ci95":0.0011732}},"contraRacha":{"n":2462000,"winRate":0.45301,"roi":{"mean":-0.010285,"ci95":0.0011737}},"siempreBanca":{"n":2500000,"winRate":0.45901,"roi":{"mean":-0.0099252,"ci95":0.0011497}}},"buckets":[{"cardsLeftFrom":52,"cardsLeftTo":103,"hands":355560,"std":0.036247,"ez":0.35008},{"cardsLeftFrom":104,"cardsLeftTo":155,"hands":362820,"std":0.0016951,"ez":0.21009},{"cardsLeftFrom":156,"cardsLeftTo":207,"hands":362670,"std":0.000027574,"ez":0.12459},{"cardsLeftFrom":208,"cardsLeftTo":259,"hands":362610,"std":0,"ez":0.06298},{"cardsLeftFrom":260,"cardsLeftTo":311,"hands":362920,"std":0,"ez":0.021834},{"cardsLeftFrom":312,"cardsLeftTo":363,"hands":362400,"std":0,"ez":0.0029222},{"cardsLeftFrom":364,"cardsLeftTo":415,"hands":331040,"std":0,"ez":0.0000060416}]},{"cut":104,"hands":2500000,"shoes":40284,"handsPerShoe":62.059,"freq":{"B":0.45881,"P":0.44602,"T":0.095169},"tables":{"std":{"label":"Mesa estándar","edgeHandsPct":0.0002488,"betsPerShoe":0.030906,"totalBets":1245,"totalProfit":-7,"profitPerShoe":{"mean":-0.00017377,"ci95":0.0056408},"roiPerBet":-0.0056225},"ez":{"label":"Mesa EZ (sin comisión)","edgeHandsPct":0.070848,"betsPerShoe":4.8203,"totalBets":194180,"totalProfit":3656,"profitPerShoe":{"mean":0.090756,"ci95":0.13028},"roiPerBet":0.018828}},"patterns":{"seguirRacha":{"n":2455500,"winRate":0.45218,"roi":{"mean":-0.012093,"ci95":0.0011747}},"contraRacha":{"n":2455500,"winRate":0.45264,"roi":{"mean":-0.010847,"ci95":0.0011751}},"siempreBanca":{"n":2500000,"winRate":0.45881,"roi":{"mean":-0.010154,"ci95":0.0011496}}},"buckets":[{"cardsLeftFrom":104,"cardsLeftTo":155,"hands":416110,"std":0.0014876,"ez":0.21053},{"cardsLeftFrom":156,"cardsLeftTo":207,"hands":424120,"std":0.0000070735,"ez":0.12373},{"cardsLeftFrom":208,"cardsLeftTo":259,"hands":424000,"std":0,"ez":0.062243},{"cardsLeftFrom":260,"cardsLeftTo":311,"hands":424270,"std":0,"ez":0.022073},{"cardsLeftFrom":312,"cardsLeftTo":363,"hands":424230,"std":0,"ez":0.0030172},{"cardsLeftFrom":364,"cardsLeftTo":415,"hands":387290,"std":0,"ez":0.000010328}]},{"cut":156,"hands":2500000,"shoes":48525,"handsPerShoe":51.52,"freq":{"B":0.45774,"P":0.44686,"T":0.0954},"tables":{"std":{"label":"Mesa estándar","edgeHandsPct":8e-7,"betsPerShoe":0.000082432,"totalBets":4,"totalProfit":-4,"profitPerShoe":{"mean":-0.000082432,"ci95":0.00011424},"roiPerBet":-1},"ez":{"label":"Mesa EZ (sin comisión)","edgeHandsPct":0.041539,"betsPerShoe":2.2508,"totalBets":109220,"totalProfit":5034,"profitPerShoe":{"mean":0.10374,"ci95":0.083449},"roiPerBet":0.046091}},"patterns":{"seguirRacha":{"n":2446300,"winRate":0.45181,"roi":{"mean":-0.012592,"ci95":0.0011768}},"contraRacha":{"n":2446300,"winRate":0.45283,"roi":{"mean":-0.010295,"ci95":0.0011772}},"siempreBanca":{"n":2500000,"winRate":0.45774,"roi":{"mean":-0.012004,"ci95":0.0011495}}},"buckets":[{"cardsLeftFrom":156,"cardsLeftTo":207,"hands":500980,"std":0.0000039922,"ez":0.12105},{"cardsLeftFrom":208,"cardsLeftTo":259,"hands":510800,"std":0,"ez":0.060272},{"cardsLeftFrom":260,"cardsLeftTo":311,"hands":510870,"std":0,"ez":0.02133},{"cardsLeftFrom":312,"cardsLeftTo":363,"hands":511030,"std":0,"ez":0.0029666},{"cardsLeftFrom":364,"cardsLeftTo":415,"hands":466330,"std":0,"ez":0.0000064332}]}]}/*END_SIM*/;
+let simCut = null;
+function renderSim() {
+  if (!SIM) { $('simPanel').hidden = true; return; }
+  const R = SIM.results; if (simCut === null) simCut = R[0].cut;
+  const S = R.find(r => r.cut === simCut);
+  const totalHands = R.reduce((a, r) => a + r.hands, 0);
+  $('simInfo').textContent = totalHands.toLocaleString('es') + ' manos simuladas · ' + SIM.decks + ' mazos';
+  $('simLead').innerHTML = 'Resultado de jugar <strong>' + S.hands.toLocaleString('es') + ' manos</strong> con este motor. Elige dónde corta el casino el zapato:';
+  $('cutTabs').innerHTML = R.map(r => '<button type="button" role="tab" aria-selected="' + (r.cut === simCut) + '" data-cut="' + r.cut + '">' + ({ 14: 'Casi al final', 52: '1 mazo antes', 104: '2 mazos antes', 156: '3 mazos antes' }[r.cut] || r.cut + ' cartas') + '</button>').join('');
+  $('cutTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { simCut = +b.dataset.cut; renderSim(); }));
+  const f = x => (x * 100).toFixed(2) + '%';
+  const u = x => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2) + ' u';
+  const sp = x => (x >= 0 ? '+' : '−') + Math.abs(x * 100).toFixed(2) + '%';
+  const cls = (m, ci) => m - ci > 0 ? 'gain-pos' : m + ci < 0 ? 'gain-neg' : '';
+  const card = (name, kind, stats) => '<div class="srow ' + kind + '"><div class="sname">' + name + '</div><div class="sstats">' +
+    stats.map(([l, v, c]) => '<div><span>' + l + '</span><b class="num ' + (c || '') + '">' + v + '</b></div>').join('') + '</div></div>';
+  const rows = [];
+  for (const t of ['std', 'ez']) {
+    const T = S.tables[t], ps = T.profitPerShoe, c = cls(ps.mean, ps.ci95);
+    rows.push(card('Apuesta sugerida · ' + T.label, 'math', [['Manos con ventaja', f(T.edgeHandsPct)], ['Ganancia por zapato', u(ps.mean), c], ['Por apuesta', sp(T.roiPerBet), c]]));
+  }
+  const names = { seguirRacha: 'Seguir la racha', contraRacha: 'Ir contra la racha', siempreBanca: 'Siempre Banca' };
+  for (const p in S.patterns) { const P = S.patterns[p];
+    rows.push(card(names[p] + ' (patrón)', 'pat', [['Acierto', f(P.winRate)], ['Ganancia por zapato', u(P.roi.mean * S.handsPerShoe), 'gain-neg'], ['Por apuesta', sp(P.roi.mean), 'gain-neg']])); }
+  $('simBody').innerHTML = rows.join('') + '<p class="hint">u = apuestas mínimas. Los patrones pierden siempre: el historial no predice la próxima mano.</p>';
+  const th = { B: 0.458597, P: 0.446247, T: 0.095156 }, col = { B: 'var(--banker)', P: 'var(--player)', T: 'var(--tie)' }, nm = { B: 'Banca', P: 'Jugador', T: 'Empate' };
+  $('simFreq').innerHTML = ['B', 'P', 'T'].map(k => '<div class="row"><span>' + nm[k] + '</span><span class="track"><i style="width:' + (S.freq[k] / 0.5 * 100) + '%;background:' + col[k] + '"></i><b style="left:' + (th[k] / 0.5 * 100) + '%" title="Teoría"></b></span><span class="v">' + f(S.freq[k]) + '</span></div>').join('') + '<p class="hint">La raya marca la teoría. Millones de manos la confirman.</p>';
+  const bs = S.buckets.slice().reverse(), mx = Math.max(...bs.map(b => b.ez), 0.001);
+  $('simBuckets').innerHTML = bs.map(b => '<div title="' + b.cardsLeftFrom + '–' + b.cardsLeftTo + ' cartas: ' + f(b.ez) + '"><span class="bar" style="height:' + (b.ez / mx * 100) + '%"></span><span class="lab">' + b.cardsLeftFrom + '</span></div>').join('');
+  $('bucketNote').textContent = 'De izquierda a derecha: del inicio al final del zapato (cartas que quedan). Altura: % de manos con alguna apuesta a favor en mesa EZ. Máximo ' + f(mx) + '.';
+}
+
+/* ---------- Bankroll simulado (bankroll-sim.js, generado offline) ---------- */
+const BK = /*BK_DATA*/{"decks":8,"table":"EZ","shoesPlayed":300,"players":2000,"maxBetUnits":1000,"scenarios":[{"cut":14,"start":500,"frac":1,"ruin":0,"median":4132,"p10":248,"p90":79555,"medianDD":0.78794,"betsPerShoe":13.883,"probLoss":0.1585},{"cut":14,"start":500,"frac":0.5,"ruin":0,"median":2856,"p10":631,"p90":12086,"medianDD":0.51172,"betsPerShoe":11.901,"probLoss":0.0665},{"cut":14,"start":500,"frac":0.25,"ruin":0,"median":1352,"p10":629,"p90":3021,"medianDD":0.29412,"betsPerShoe":7.3041,"probLoss":0.0485},{"cut":14,"start":2000,"frac":1,"ruin":0,"median":18194,"p10":1092,"p90":191420,"medianDD":0.76948,"betsPerShoe":16.711,"probLoss":0.1475},{"cut":14,"start":2000,"frac":0.5,"ruin":0,"median":11318,"p10":2648,"p90":51613,"medianDD":0.50494,"betsPerShoe":16.088,"probLoss":0.0605},{"cut":14,"start":2000,"frac":0.25,"ruin":0,"median":5540,"p10":2617,"p90":11953,"medianDD":0.29072,"betsPerShoe":13.69,"probLoss":0.0425},{"cut":14,"start":10000,"frac":1,"ruin":0,"median":104870,"p10":6702,"p90":411710,"medianDD":0.71995,"betsPerShoe":17.888,"probLoss":0.1315},{"cut":14,"start":10000,"frac":0.5,"ruin":0,"median":52555,"p10":13054,"p90":193560,"medianDD":0.49142,"betsPerShoe":17.751,"probLoss":0.062},{"cut":14,"start":10000,"frac":0.25,"ruin":0,"median":27217,"p10":12761,"p90":61198,"medianDD":0.28911,"betsPerShoe":17.167,"probLoss":0.0395},{"cut":52,"start":500,"frac":1,"ruin":0,"median":582,"p10":267,"p90":1298,"medianDD":0.44459,"betsPerShoe":4.9064,"probLoss":0.4},{"cut":52,"start":500,"frac":0.5,"ruin":0,"median":548,"p10":367,"p90":878,"medianDD":0.25904,"betsPerShoe":2.5886,"probLoss":0.3905},{"cut":52,"start":500,"frac":0.25,"ruin":0,"median":521,"p10":437,"p90":654,"medianDD":0.12007,"betsPerShoe":0.7162,"probLoss":0.3945},{"cut":52,"start":2000,"frac":1,"ruin":0,"median":2391,"p10":1195,"p90":5508,"medianDD":0.43351,"betsPerShoe":8.1674,"probLoss":0.3745},{"cut":52,"start":2000,"frac":0.5,"ruin":0,"median":2274,"p10":1571,"p90":3379,"medianDD":0.24148,"betsPerShoe":6.8747,"probLoss":0.3285},{"cut":52,"start":2000,"frac":0.25,"ruin":0,"median":2166,"p10":1779,"p90":2654,"medianDD":0.12986,"betsPerShoe":4.8652,"probLoss":0.3035},{"cut":52,"start":10000,"frac":1,"ruin":0,"median":11768,"p10":5625,"p90":27142,"medianDD":0.43255,"betsPerShoe":9.3835,"probLoss":0.3775},{"cut":52,"start":10000,"frac":0.5,"ruin":0,"median":11303,"p10":7811,"p90":17037,"medianDD":0.23964,"betsPerShoe":9.0759,"probLoss":0.3435},{"cut":52,"start":10000,"frac":0.25,"ruin":0,"median":10783,"p10":8951,"p90":13394,"medianDD":0.12567,"betsPerShoe":8.4395,"probLoss":0.3125}]}/*END_BK*/;
+let bankCut = null;
+function renderBank() {
+  if (!BK) { $('bankPanel').hidden = true; return; }
+  const cuts = [...new Set(BK.scenarios.map(s => s.cut))];
+  if (bankCut === null) bankCut = cuts[0];
+  const m = state.minBet, money = u => '$' + Math.round(u * m).toLocaleString('es');
+  $('bankInfo').textContent = BK.players.toLocaleString('es') + ' jugadores por escenario · ' + BK.shoesPlayed + ' zapatos cada uno · mesa EZ';
+  $('bankLead').innerHTML = 'Qué le pasa a quien sigue la apuesta sugerida durante <strong>' + BK.shoesPlayed + ' zapatos</strong>, con tu mínima de <strong>$' + m.toLocaleString('es') + '</strong>.';
+  $('bankTabs').innerHTML = cuts.map(c => '<button type="button" role="tab" aria-selected="' + (c === bankCut) + '" data-cut="' + c + '">' + ({ 14: 'Casi al final', 52: '1 mazo antes' }[c] || c + ' cartas') + '</button>').join('');
+  $('bankTabs').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { bankCut = +b.dataset.cut; renderBank(); }));
+  const fr = { 1: 'Agresivo', 0.5: 'Medio', 0.25: 'Prudente' };
+  const sc = BK.scenarios.filter(s => s.cut === bankCut);
+  const starts = [...new Set(sc.map(s => s.start))];
+  $('bankBody').innerHTML = starts.map(st => '<div class="bgroup"><div class="sname">Empiezas con ' + money(st) + ' <span class="hint">(' + st.toLocaleString('es') + ' mínimas)</span></div>' +
+    sc.filter(s => s.start === st).map(s => '<div class="brow' + (s.frac === state.kfrac ? ' sel' : '') + '"><span class="bstyle">' + fr[s.frac] + '</span><div class="sstats">' +
+      '<div><span>Termina perdiendo</span><b class="num ' + (s.probLoss > 0.2 ? 'gain-neg' : '') + '">' + (s.probLoss * 100).toFixed(1) + '%</b></div>' +
+      '<div><span>Caso típico</span><b class="num ' + (s.median < st ? 'gain-neg' : 'gain-pos') + '">' + money(s.median) + '</b></div>' +
+      '<div><span>Peor caída</span><b class="num">−' + (s.medianDD * 100).toFixed(0) + '%</b></div></div></div>').join('') + '</div>').join('');
+  $('bankNote').textContent = 'Resaltado: el estilo que tienes en Mi mesa. Nadie quebró del todo porque Kelly baja la apuesta cuando el dinero baja. Se supone una apuesta máxima de mesa de ' + BK.maxBetUnits + ' mínimas.';
+}
+
+/* ---------- Navegación por pestañas (#jugar, #prob, #zapato, #mesa, #datos) ---------- */
+const VIEWS = ['jugar', 'prob', 'zapato', 'mesa', 'datos'];
+function showView() {
+  const h = location.hash.slice(1), v = VIEWS.includes(h) ? h : 'jugar';
+  VIEWS.forEach(n => { $('v-' + n).hidden = n !== v; });
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', t.dataset.v === v ? 'page' : 'false'));
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  if (location.hash !== '#' + t.dataset.v) location.hash = t.dataset.v; else showView();
+}));
+window.addEventListener('hashchange', showView);
+
+if (!load()) demoShoe();
+render();
+renderSim();
+renderBank();
+showView();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "Zapato Exacto",
+  "short_name": "Zapato",
+  "description": "Contador de cartas de baccarat: probabilidad exacta, apuesta sugerida y cuánto apostar.",
+  "lang": "es",
+  "start_url": "./#jugar",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121614",
+  "theme_color": "#121614",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
